@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795396184901,
+      "tag": "0000_sc_hub_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795396201639,
+      "tag": "0001_client_files_storage_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795396376903,
+      "tag": "0002_sheet_documents",
+      "breakpoints": true
+    }
+  ]
+}

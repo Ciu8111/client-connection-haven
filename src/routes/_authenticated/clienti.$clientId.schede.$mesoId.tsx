@@ -123,7 +123,7 @@ function SheetPage() {
         mesocycleId={mesoId}
         clientId={clientId}
         initialData={data.sheet}
-        seed={{ athlete: data.client.full_name.toUpperCase(), goal: data.meso.goal ?? "", date: dateIt }}
+        seed={{ athlete: data.client.full_name, goal: data.meso.goal ?? "", date: dateIt, title: data.meso.title }}
         canInsert={isCoach}
         onSaved={onSaved}
       />

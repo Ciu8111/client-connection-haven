@@ -232,7 +232,6 @@ function NewMesocycleDialog({
       if (data) {
         data = {
           ...data,
-          cloudUrl: "",
           meta: {
             ...(data.meta ?? {}),
             athlete: data.meta?.athlete || clientName,
@@ -270,10 +269,7 @@ function NewMesocycleDialog({
       return;
     }
     setImported({ name: file.name, state });
-    if (!title && state.labels && typeof state.labels === "object") {
-      const t = (state.labels as Record<string, unknown>)["mainTitle"];
-      if (typeof t === "string") setTitle(t.replace(/^PROGRAMMA DI ALLENAMENTO\s*—\s*/i, ""));
-    }
+    if (!title && state.mainTitle) setTitle(state.mainTitle.replace(/^PROGRAMMA DI ALLENAMENTO\s*—\s*/i, ""));
     if (!goal && state.meta?.goal) setGoal(state.meta.goal);
   }
 
@@ -314,7 +310,7 @@ function NewMesocycleDialog({
             <Label>Parti da</Label>
             <RadioGroup value={source} onValueChange={(v) => setSource(v as Source)} className="grid gap-2">
               <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3">
-                <RadioGroupItem value="template" /> <span className="text-sm">Modulo v6 vuoto</span>
+                <RadioGroupItem value="template" /> <span className="text-sm">Scheda base vuota</span>
               </label>
               <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3">
                 <RadioGroupItem value="copy" disabled={!existing.length} />
@@ -354,7 +350,7 @@ function NewMesocycleDialog({
                 <FileUp /> {imported ? imported.name : "Scegli il file"}
               </Button>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Usa il file scaricato con "Scarica HTML" o "Esporta Dati" dal tuo modulo.
+                Usa il file salvato con "Salva Copia HTML" o "Esporta JSON" dalla tua scheda.
               </p>
             </div>
           )}

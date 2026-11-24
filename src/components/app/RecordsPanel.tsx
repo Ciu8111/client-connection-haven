@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Calculator, Dumbbell, MoveVertical } from "lucide-react";
+import { Calculator, Dumbbell, MoveVertical, Repeat } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { computeRecords, sheetE1RM, type SheetState } from "@/lib/sheet";
+import { computeRecords, estimate1RM, type SheetState } from "@/lib/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,22 +28,24 @@ export function RecordsPanel({ clientId }: { clientId: string }) {
     [data],
   );
   const lifts = records.filter((r) => r.kind === "kg").sort((a, b) => b.best - a.best);
+  const reps = records.filter((r) => r.kind === "rep").sort((a, b) => b.best - a.best);
   const jumps = records.filter((r) => r.kind === "jump").sort((a, b) => b.best - a.best);
 
   if (isLoading) return <Skeleton className="h-48 rounded-xl" />;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_1fr_320px]">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <RecordList
         icon={<Dumbbell className="size-4" />}
-        title="Fondamentali — miglior carico"
-        empty="Compila i carichi nel grafico dei fondamentali per vedere i record."
-        rows={lifts.map((r) => ({
-          name: r.name,
-          value: `${r.best} kg`,
-          extra: r.e1rm ? `e1RM ${r.e1rm} kg` : undefined,
-          source: r.source,
-        }))}
+        title="Carichi — miglior kg"
+        empty="Compila la progressione carichi (kg) nella scheda per vedere i record."
+        rows={lifts.map((r) => ({ name: r.name, value: `${r.best} kg`, source: r.source }))}
+      />
+      <RecordList
+        icon={<Repeat className="size-4" />}
+        title="Ripetizioni — miglior rep"
+        empty="Compila la progressione ripetizioni (rep) per vedere i record."
+        rows={reps.map((r) => ({ name: r.name, value: `${r.best} rep`, source: r.source }))}
       />
       <RecordList
         icon={<MoveVertical className="size-4" />}
@@ -98,7 +100,7 @@ function RecordList({
 function E1rmCalculator() {
   const [kg, setKg] = useState("100");
   const [reps, setReps] = useState("5");
-  const value = sheetE1RM(Number(kg.replace(",", ".")), `1x${reps}`);
+  const value = estimate1RM(Number(kg.replace(",", ".")), Number(reps));
   return (
     <section className="glass rounded-xl p-5">
       <h3 className="flex items-center gap-2 font-display font-semibold">

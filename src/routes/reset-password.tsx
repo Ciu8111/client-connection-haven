@@ -31,7 +31,10 @@ function ResetPassword() {
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return toast.error("Link scaduto o non valido. Richiedine uno nuovo.");
+    if (error) {
+      toast.error("Link scaduto o non valido. Richiedine uno nuovo.");
+      return;
+    }
     toast.success("Password aggiornata");
     navigate({ to: "/dashboard", replace: true });
   }

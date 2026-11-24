@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import { buildSheetDocument, type SheetSeed, type SheetState } from "@/lib/sheet";
+import { buildSheetDocument, SHEET_TEMPLATE_URL, type SheetSeed, type SheetState } from "@/lib/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
@@ -14,17 +14,17 @@ type Props = {
   onSaved?: (at: Date) => void;
 };
 
-/** Hosts the Modulo Professionale Dinamico v6 in a sandboxed frame and saves every change. */
+/** Hosts the training sheet in a sandboxed frame and saves every change to the folder. */
 export function SheetFrame({ mesocycleId, clientId, initialData, seed, canInsert, onSaved }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const queryClient = useQueryClient();
   const [loaded, setLoaded] = useState(false);
 
   const { data: template } = useQuery({
-    queryKey: ["sheet-template-v6"],
+    queryKey: ["sheet-template", SHEET_TEMPLATE_URL],
     staleTime: Infinity,
     queryFn: async () => {
-      const res = await fetch("/scheda/modulo-v6.html");
+      const res = await fetch(SHEET_TEMPLATE_URL);
       if (!res.ok) throw new Error("Modulo non disponibile");
       return res.text();
     },

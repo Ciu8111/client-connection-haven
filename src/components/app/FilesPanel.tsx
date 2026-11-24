@@ -62,7 +62,10 @@ export function FilesPanel({ clientId, userId, isCoach }: { clientId: string; us
 
   async function download(path: string, name: string) {
     const { data, error } = await supabase.storage.from("client-files").createSignedUrl(path, 60, { download: name });
-    if (error || !data) return toast.error("Impossibile scaricare il file");
+    if (error || !data) {
+      toast.error("Impossibile scaricare il file");
+      return;
+    }
     window.open(data.signedUrl, "_blank", "noopener");
   }
 

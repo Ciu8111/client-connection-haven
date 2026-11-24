@@ -9,3 +9,4 @@
 - [ ] File per cliente
 - [ ] Campanella notifiche (compilazioni + PR in tempo reale)
 - [ ] Scheda identica al "Modulo Professionale Dinamico v5" — in attesa del file/screenshot dall'utente
+- [ ] Sostituire il modello con Scheda_Francesco_Pierro_1.html (nuovo esempio fornito dall'utente)

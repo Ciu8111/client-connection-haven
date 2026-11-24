@@ -39,7 +39,7 @@ const FEATURES = [
   {
     icon: LineChart,
     title: "La tua scheda, identica",
-    text: "Il Modulo Professionale Dinamico v6 con grafici, e1RM, antropometria e salti.",
+    text: "La tua scheda con progressioni kg e rep, grafici, antropometria e test di salto.",
   },
   {
     icon: Trophy,

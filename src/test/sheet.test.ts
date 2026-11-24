@@ -52,3 +52,41 @@ describe("records", () => {
     expect(recs.find((r) => r.kind === "rep")?.best).toBe(11);
   });
 });
+
+describe("old sheets (previous module)", () => {
+  const legacy = {
+    meta: { athlete: "PIERPAOLO SPINELLI", goal: "IN SEASON", date: "" },
+    labels: { mainTitle: "PROGRAMMA DI ALLENAMENTO — MESOCICLO 9 SETTIMANE" },
+    lifts: [{ id: "lift_squat", label: "1-Squat ", color: "#1E3A5F" }],
+    tracker: { lift_squat: [{ kg: 70 }, { kg: 80 }, { kg: "" }] },
+    days: [
+      {
+        title: "GIORNO 1",
+        weekLabels: ["Fine1Blocco", "W1", "W2"],
+        rows: [{ ex: "1-Squat", rec: "90 sec", note: "D3''F2''", weeks: ["4sx2 70kg", "6sx1 80kg", ""] }],
+      },
+    ],
+    metrics: { jumps: [{ name: "Salto da fermo (CMJ)", unit: "cm", weeks: ["38"] }] },
+  };
+
+  it("keeps loads, rest times, week labels and jumps when opened in the new sheet", async () => {
+    const { upgradeLegacySheet } = await import("@/lib/sheet");
+    const up = upgradeLegacySheet(legacy) as Record<string, unknown> & {
+      kgItems: { label: string; values: string[] }[];
+      days: { rows: { rest: string }[] }[];
+      evalData: { jumps: { rows: { name: string; vals: string[] }[] } };
+    };
+    expect(up.kgItems[0]?.label).toBe("1-Squat");
+    expect(up.kgItems[0]?.values).toEqual(["70", "80", ""]);
+    expect(up.days[0]?.rows[0]?.rest).toBe("90 sec");
+    expect(up["weekLabels"]).toEqual(["Fine1Blocco", "W1", "W2"]);
+    expect(up.evalData.jumps.rows[0]?.vals).toEqual(["38"]);
+    expect(up["mainTitle"]).toBe("PROGRAMMA DI ALLENAMENTO — MESOCICLO 9 SETTIMANE");
+  });
+
+  it("is applied only once", async () => {
+    const { upgradeLegacySheet } = await import("@/lib/sheet");
+    const once = upgradeLegacySheet(legacy);
+    expect(upgradeLegacySheet(once)).toBe(once);
+  });
+});

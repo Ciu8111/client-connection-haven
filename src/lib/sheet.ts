@@ -47,12 +47,14 @@ export function extractStateFromFile(text: string): SheetState | null {
   try {
     if (trimmed.startsWith("{")) {
       const parsed = JSON.parse(trimmed) as SheetState;
-      return parsed && Array.isArray(parsed.days) ? parsed : null;
+      return parsed && Array.isArray(parsed.days) ? upgradeLegacySheet(parsed) : null;
     }
-    const m = trimmed.match(/<script id="initialData" type="application\/json">([\s\S]*?)<\/script>/);
+    const m = trimmed.match(
+      /<script id="(?:initialData|embeddedStateData)" type="application\/json">([\s\S]*?)<\/script>/,
+    );
     if (!m || !m[1]) return null;
     const parsed = JSON.parse(m[1]) as SheetState | null;
-    return parsed && Array.isArray(parsed.days) ? parsed : null;
+    return parsed && Array.isArray(parsed.days) ? upgradeLegacySheet(parsed) : null;
   } catch {
     return null;
   }
@@ -101,4 +103,88 @@ export function computeRecords(sheets: { title: string; data: SheetState | null 
     for (const r of data.evalData?.jumps?.rows ?? []) consider("jump", r.name, r.vals ?? [], r.unit || "cm", title);
   }
   return [...out.values()];
+}
+
+type LegacyDay = {
+  title?: string;
+  weekLabels?: string[];
+  rows?: { ex?: string; rec?: string; rest?: string; note?: string; weeks?: string[]; hidden?: boolean }[];
+};
+type LegacySheet = SheetState & {
+  lifts?: { id: string; label: string; color?: string }[];
+  tracker?: Record<string, { kg?: number | string }[]>;
+  trackerWeekLabels?: string[];
+  metrics?: Record<string, { name: string; unit?: string; weeks?: string[] }[]>;
+  metricWeekLabels?: Record<string, string[]>;
+  labels?: Record<string, unknown>;
+  legacyUpgraded?: boolean;
+};
+
+const isBlank = (vals: unknown[] | undefined) => !vals || vals.every((v) => String(v ?? "").trim() === "");
+
+/**
+ * Converts a sheet saved with the previous module (v6: lifts/tracker/metrics) to the
+ * current layout (kgItems/evalData), keeping all original keys. Idempotent.
+ */
+export function upgradeLegacySheet(input: SheetState | null): SheetState | null {
+  if (!input) return input;
+  const d = input as LegacySheet;
+  if (d.legacyUpgraded || (!Array.isArray(d.lifts) && !d.metrics)) return input;
+  const out: LegacySheet = { ...d, legacyUpgraded: true };
+
+  const days = (Array.isArray(d.days) ? d.days : []) as LegacyDay[];
+  const longest = days.reduce<LegacyDay | undefined>(
+    (best, day) => ((day.weekLabels?.length ?? 0) > (best?.weekLabels?.length ?? 0) ? day : best),
+    undefined,
+  );
+  if (longest?.weekLabels?.length) out["weekLabels"] = [...longest.weekLabels];
+  out.days = days.map((day) => ({
+    ...day,
+    rows: (day.rows ?? []).map((r) => ({ ...r, rest: r.rest ?? r.rec ?? "", note: r.note ?? "", weeks: r.weeks ?? [] })),
+  }));
+
+  if (Array.isArray(d.lifts) && (!d.kgItems || d.kgItems.every((i) => isBlank(i.values)))) {
+    out.kgItems = d.lifts.map((l, idx) => ({
+      id: `kg_${idx + 1}`,
+      label: l.label.trim(),
+      color: l.color ?? "#1E3A8A",
+      values: (d.tracker?.[l.id] ?? []).map((t) => (t.kg === undefined || t.kg === null ? "" : String(t.kg))),
+    }));
+  }
+
+  const m = d.metrics ?? {};
+  const toRows = (items: { name: string; unit?: string; weeks?: string[] }[] = []) =>
+    items.map((it) => ({ name: it.name, unit: it.unit ?? "", vals: [...(it.weeks ?? [])] }));
+  const evalData = { ...(d.evalData ?? {}) };
+  const jumpsEmpty = !evalData.jumps || evalData.jumps.rows.every((r) => !r.name?.trim() && isBlank(r.vals));
+  if (m["jumps"]?.length && jumpsEmpty) {
+    const rows = toRows(m["jumps"]);
+    const n = Math.max(1, ...rows.map((r) => r.vals.length));
+    evalData.jumps = { cols: (d.metricWeekLabels?.["jumps"] ?? []).slice(0, n), rows };
+  }
+  const anthroEmpty = !evalData.anthro || evalData.anthro.rows.every((r) => !r.name?.trim() && isBlank(r.vals));
+  const anthroSrc = [...(m["bodyWeight"] ?? []), ...(m["circumferences"] ?? [])];
+  if (anthroSrc.length && anthroEmpty) {
+    const rows = toRows(anthroSrc);
+    const n = Math.max(1, ...rows.map((r) => r.vals.length));
+    const cols = d.metricWeekLabels?.["bodyWeight"] ?? [];
+    evalData.anthro = {
+      cols: Array.from({ length: n }, (_, i) => cols[i] ?? `Test ${i + 1}`),
+      rows: rows.map((r) => ({ ...r, vals: Array.from({ length: n }, (_, i) => r.vals[i] ?? "") })),
+    };
+  }
+  if (evalData.jumps) {
+    const n = Math.max(1, ...evalData.jumps.rows.map((r) => r.vals.length));
+    evalData.jumps = {
+      cols: Array.from({ length: n }, (_, i) => evalData.jumps?.cols[i] ?? `Test ${i + 1}`),
+      rows: evalData.jumps.rows.map((r) => ({ ...r, vals: Array.from({ length: n }, (_, i) => r.vals[i] ?? "") })),
+    };
+  }
+  out.evalData = evalData;
+
+  const legacyTitle = d.labels?.["mainTitle"];
+  if (typeof legacyTitle === "string" && (!d.mainTitle || d.mainTitle.includes("BASE VUOTA"))) out.mainTitle = legacyTitle;
+  const legacyNote = (d.meta as Record<string, unknown> | undefined)?.["testNote"];
+  if (typeof legacyNote === "string" && legacyNote && !d.meta?.note) out.meta = { ...d.meta, note: legacyNote };
+  return out;
 }

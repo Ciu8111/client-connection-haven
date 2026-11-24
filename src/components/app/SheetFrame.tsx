@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import { buildSheetDocument, SHEET_TEMPLATE_URL, type SheetSeed, type SheetState } from "@/lib/sheet";
+import { buildSheetDocument, SHEET_TEMPLATE_URL, upgradeLegacySheet, type SheetSeed, type SheetState } from "@/lib/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
@@ -31,7 +31,7 @@ export function SheetFrame({ mesocycleId, clientId, initialData, seed, canInsert
   });
 
   // Build once per mesocycle: saving must not reload the frame.
-  const [initial] = useState(() => ({ data: initialData, seed }));
+  const [initial] = useState(() => ({ data: upgradeLegacySheet(initialData), seed }));
   const srcDoc = useMemo(
     () => (template ? buildSheetDocument(template, initial.data, initial.seed) : undefined),
     [template, initial],
